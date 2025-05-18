@@ -1,0 +1,29 @@
+{% extends 'tienda/base.html' %}
+
+{% block title %}Inicio - FERREMAS{% endblock %}
+
+{% block content %}
+<h1>Bienvenido a FERREMAS</h1>
+<p>Tu ferretería de confianza</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Productos Destacados</h5>
+                <p class="card-text">Descubre nuestras mejores ofertas</p>
+                <a href="/productos" class="btn btn-primary">Ver productos</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Contacto</h5>
+                <p class="card-text">¿Necesitas ayuda? Contáctanos</p>
+                <a href="/contacto" class="btn btn-primary">Ir a contacto</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
