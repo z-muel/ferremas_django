@@ -11,6 +11,12 @@
         <div class="container">
             <a class="navbar-brand" href="/">FERREMAS</a>
             <div class="navbar-nav">
+                <li class="nav-item">
+    <a class="nav-link" href="{% url 'carrito' %}">
+        🛒 Carrito 
+        <span class="badge bg-danger">{{ carrito_context.count|default:0 }}</span>
+    </a>
+</li>
                 <a class="nav-link" href="/">Inicio</a>
                 <a class="nav-link" href="/productos">Productos</a>
                 <a class="nav-link" href="/contacto">Contacto</a>

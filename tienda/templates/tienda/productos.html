@@ -8,7 +8,7 @@
       {% if producto.imagen %}
         <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}">
       {% endif %}
-      <div class="card-body">
+      <div class="card-body"><a href="{% url 'agregar_carrito' producto.id %}" class="btn btn-primary">Agregar al carrito</a>
         <h5 class="card-title">{{ producto.nombre }}</h5>
         <p class="card-text">
           ${{ producto.precio }}<br>
