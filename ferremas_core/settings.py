@@ -93,3 +93,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # 10. Configuración de sesiones
 SESSION_COOKIE_AGE = 86400  # 1 día en segundos
 SESSION_SAVE_EVERY_REQUEST = True
+
+# 11. Configuración de Webpay Plus (Modo TEST)
+TRANSBANK_WEBPAY = {
+    'COMMERCE_CODE': '597020000541',  # Código de prueba correcto
+    'API_KEY': '597020000541',  # ✅ Usa el mismo código en modo TEST
+    'ENVIRONMENT': 'TEST',  # ✅ Confirmar que esté en entorno de prueba
+}
