@@ -8,12 +8,20 @@ from .views import (
     login_view,
     agregar_al_carrito,
     ver_carrito,
-    convertir_moneda,
     ProductoListAPIView,
-    CategoriaListAPIView  
+    CategoriaListAPIView,
+    iniciar_pago,
+)
+
+# Importa las vistas de API que creamos anteriormente
+from .api import (
+    ContactoCreateAPIView,
+    MonedaAPIView,
+    WebpayAPIView,
 )
 
 urlpatterns = [
+    # URLs de vistas HTML (frontend)
     path('', inicio, name='inicio'),
     path('productos/', lista_productos, name='productos'),
     path('contacto/', contacto, name='contacto'),
@@ -21,8 +29,12 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     path('agregar-carrito/<int:producto_id>/', agregar_al_carrito, name='agregar_carrito'),
     path('carrito/', ver_carrito, name='carrito'),
+    path('iniciar-pago/', iniciar_pago, name='iniciar_pago'),
+
+    # URLs de APIs (REST)
     path('api/productos/', ProductoListAPIView.as_view(), name='api_productos'),
     path('api/categorias/', CategoriaListAPIView.as_view(), name='api_categorias'),
-    path('api/tipo-cambio/', convertir_moneda, name='api_tipo_cambio'),
-    path('iniciar-pago/', views.iniciar_pago, name='iniciar_pago'),
+    path('api/contacto/', ContactoCreateAPIView.as_view(), name='api_contacto'),
+    path('api/moneda/', MonedaAPIView.as_view(), name='api_moneda'),
+    path('api/webpay/', WebpayAPIView.as_view(), name='api_webpay'),
 ]
