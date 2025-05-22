@@ -8,8 +8,9 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from rest_framework import generics
-from transbank.webpay.webpay_plus.transaction import Transaction
-import requests
+from transbank.webpay.webpay_plus.transaction import Transaction, WebpayOptions
+from transbank.common.integration_type import IntegrationType
+import requests    
 from .models import MensajeContacto, Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
 from .forms import ProductoForm
@@ -171,24 +172,67 @@ def eliminar_del_carrito(request, producto_id):
     
     return redirect('ver_carrito')
 
-# 🔹 Webpay (versión mejorada)
+# 🔹 Webpay 
 def iniciar_pago(request):
+    print("Iniciar pago ejecutándose...")  # ✅ Confirmación en consola
     carrito = request.session.get('carrito', {})
-    total = 0
-    
-    for producto_id, cantidad in carrito.items():
-        producto = Producto.objects.filter(id=int(producto_id)).first()
-        if producto:
-            total += producto.precio * cantidad
-    
-    response = Transaction().create(
-        buy_order=f"orden_{request.user.id}",
-        session_id=request.session.session_key,
-        amount=total,
-        return_url=request.build_absolute_uri(reverse('inicio'))
+    total = sum(Producto.objects.get(id=int(pid)).precio * cantidad for pid, cantidad in carrito.items())
+
+    buy_order = f"orden_{request.user.id}"
+    session_id = request.session.session_key
+    return_url = request.build_absolute_uri(reverse('confirmar_pago'))
+
+    options = WebpayOptions(
+        api_key="597020000541",
+        commerce_code="597020000541",
+        integration_type=IntegrationType.TEST
     )
-    
-    return redirect(response['url'])
+
+    transaction = Transaction(options)
+
+    try:
+        response = transaction.create(buy_order, session_id, total, return_url)
+        print(f"Respuesta completa de Webpay: {response}")  # ✅ Verifica la respuesta
+
+        if 'url' in response:
+            print(f"Redirigiendo a Webpay: {response['url']}")  # ✅ Confirmación en consola
+            return redirect(response['url'])
+        else:
+            print("Error en Webpay: No se recibió una URL de pago válida.")  # ✅ Depuración extra
+            messages.error(request, "Error en Webpay: No se recibió una URL de pago válida.")
+            return redirect('ver_carrito')
+
+    except Exception as e:
+        print(f"Error en Webpay capturado: {e}")  # ✅ Imprimir el error exacto en consola
+        messages.error(request, f"Error en Webpay: {e}")
+        return redirect('ver_carrito')
+
+
+
+
+def confirmar_pago(request):
+    token = request.GET.get("token_ws", None)
+
+    if not token:
+        messages.error(request, "Error en la transacción.")
+        return redirect('ver_carrito')
+
+    transaction = Transaction(WebpayOptions(
+        api_key="597020000541",
+        commerce_code="597020000541",
+        integration_type=IntegrationType.TEST
+    ))
+
+    response = transaction.commit(token)
+
+    if response['status'] == 'AUTHORIZED':
+        messages.success(request, "Pago realizado exitosamente.")
+        request.session['carrito'] = {}  # ✅ Vaciar carrito tras compra
+        return redirect('productos')
+    else:
+        messages.error(request, "El pago no pudo completarse.")
+        return redirect('ver_carrito')
+
 
 # 🔹 API Banco Central (optimizada)
 def convertir_moneda(request):

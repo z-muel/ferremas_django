@@ -1,5 +1,5 @@
 from django.urls import path, include
-from . import views
+from tienda import views
 
 urlpatterns = [
     # URLs del sitio (frontend)
@@ -20,6 +20,8 @@ urlpatterns = [
     
     # 🔹 Pago
     path('iniciar-pago/', views.iniciar_pago, name='iniciar_pago'),
+    path('confirmar-pago/', views.confirmar_pago, name='confirmar_pago'),
+    
 
     # 🔹 APIs separadas
     path('api/', include('tienda.urls_api')),
