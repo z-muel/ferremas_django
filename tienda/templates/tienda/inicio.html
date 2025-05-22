@@ -26,9 +26,14 @@
                             <span class="fw-bold">${{ producto.precio }}</span><br>
                             <small class="text-muted">Stock: {{ producto.stock }}</small>
                         </p>
-                        <a href="{% url 'agregar_carrito' producto.id %}" class="btn btn-sm btn-primary">
-                            <i class="bi bi-cart-plus"></i> Añadir al carrito
-                        </a>
+                        
+                        <!-- ✅ Formulario corregido para agregar al carrito -->
+                        <form method="post" action="{% url 'agregar_carrito' producto.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-cart-plus"></i> Añadir al carrito
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -52,7 +57,7 @@
             <div class="card text-center h-100">
                 <div class="card-body">
                     <h5 class="card-title"><i class="bi bi-cart"></i> Tu Carrito</h5>
-                    <a href="{% url 'carrito' %}" class="btn btn-outline-success">Ver carrito</a>
+                    <a href="{% url 'ver_carrito' %}" class="btn btn-outline-success">Ver carrito</a>
                 </div>
             </div>
         </div>

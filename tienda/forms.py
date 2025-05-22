@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
-from .models import MensajeContacto
+from .models import MensajeContacto, Producto, Categoria
 
 class RegistroPersonalizadoForm(UserCreationForm):
     email = forms.EmailField(
@@ -33,4 +33,20 @@ class ContactoForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 4
             }),
+        }
+
+class ProductoForm(forms.ModelForm):
+    class Meta:
+        model = Producto
+        fields = ['codigo', 'nombre', 'marca', 'modelo', 'precio', 'stock', 'categoria', 'imagen', 'descripcion']
+        widgets = {
+            'codigo': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'marca': forms.TextInput(attrs={'class': 'form-control'}),
+            'modelo': forms.TextInput(attrs={'class': 'form-control'}),
+            'precio': forms.NumberInput(attrs={'class': 'form-control'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control'}),
+            'categoria': forms.Select(attrs={'class': 'form-control'}),
+            'imagen': forms.FileInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }

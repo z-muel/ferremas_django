@@ -1,0 +1,21 @@
+{% extends 'tienda/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Crear Producto</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="mt-3">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Guardar Producto</button>
+    </form>
+
+    <a href="{% url 'productos' %}" class="btn btn-outline-secondary mt-3">Volver a la lista</a>
+</div>
+{% endblock %}

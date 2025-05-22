@@ -6,13 +6,15 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from rest_framework import generics
 from transbank.webpay.webpay_plus.transaction import Transaction
 import requests
 from .models import MensajeContacto, Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
+from .forms import ProductoForm
 
-# Vistas principales
+# 🔹 Vistas principales
 def inicio(request):
     productos_destacados = Producto.objects.filter(stock__gt=0)[:4]
     return render(request, 'tienda/inicio.html', {'productos_destacados': productos_destacados})
@@ -21,7 +23,7 @@ def lista_productos(request):
     productos = Producto.objects.all()
     return render(request, 'tienda/productos.html', {'productos': productos})
 
-# Autenticación
+# 🔹 Autenticación
 def registro(request):
     form = UserCreationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -46,7 +48,7 @@ def login_view(request):
     
     return render(request, 'tienda/login.html')
 
-# Contacto
+# 🔹 Contacto
 def contacto(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre', '').strip()
@@ -65,14 +67,66 @@ def contacto(request):
     
     return render(request, 'tienda/contacto.html')
 
-# Carrito
+# 🔹 CRUD de Productos (Solo Administradores)
+@login_required
+def crear_producto(request):
+    if not request.user.is_staff:  # ✅ Solo administradores pueden acceder
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Producto creado exitosamente")
+            return redirect('productos')
+    else:
+        form = ProductoForm()
+    
+    return render(request, 'tienda/crear_producto.html', {'form': form})
+
+@login_required
+def editar_producto(request, producto_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    producto = get_object_or_404(Producto, id=producto_id)
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, request.FILES, instance=producto)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Producto actualizado correctamente")
+            return redirect('productos')
+    else:
+        form = ProductoForm(instance=producto)
+    
+    return render(request, 'tienda/editar_producto.html', {'form': form, 'producto': producto})
+
+@login_required
+def eliminar_producto(request, producto_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    producto = get_object_or_404(Producto, id=producto_id)
+    producto.delete()
+    messages.success(request, "Producto eliminado exitosamente")
+    return redirect('productos')
+
+# 🔹 Carrito
 @require_POST
 def agregar_al_carrito(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
     carrito = request.session.get('carrito', {})
-    carrito[str(producto_id)] = carrito.get(str(producto_id), 0) + 1
+
+    # ✅ Si el producto ya está en el carrito, aumenta la cantidad
+    if str(producto_id) in carrito:
+        carrito[str(producto_id)] += 1
+    else:
+        carrito[str(producto_id)] = 1
+
     request.session['carrito'] = carrito
-    return redirect('productos')
+    messages.success(request, f"{producto.nombre} agregado al carrito.")
+
+    return redirect('ver_carrito')
 
 def ver_carrito(request):
     carrito = request.session.get('carrito', {})
@@ -95,7 +149,29 @@ def ver_carrito(request):
         'total': total
     })
 
-# Webpay (versión mejorada)
+@require_POST
+def actualizar_carrito(request, producto_id):
+    cantidad = int(request.POST.get('cantidad', 1))
+    carrito = request.session.get('carrito', {})
+
+    if cantidad > 0:
+        carrito[str(producto_id)] = cantidad
+    else:
+        carrito.pop(str(producto_id), None)  # ✅ Si la cantidad es 0, elimina el producto
+
+    request.session['carrito'] = carrito
+    return redirect('ver_carrito')
+
+@require_POST
+def eliminar_del_carrito(request, producto_id):
+    carrito = request.session.get('carrito', {})
+    carrito.pop(str(producto_id), None)  # ✅ Elimina el producto del carrito
+    request.session['carrito'] = carrito
+    messages.success(request, "Producto eliminado del carrito.")
+    
+    return redirect('ver_carrito')
+
+# 🔹 Webpay (versión mejorada)
 def iniciar_pago(request):
     carrito = request.session.get('carrito', {})
     total = 0
@@ -114,13 +190,13 @@ def iniciar_pago(request):
     
     return redirect(response['url'])
 
-# API Banco Central (optimizada)
+# 🔹 API Banco Central (optimizada)
 def convertir_moneda(request):
     monto = float(request.GET.get('monto', 1))  # Monto base
     tasa = 890.75  # Simulación de tasa CLP/USD
     return JsonResponse({'monto_convertido': monto * tasa, 'tasa': tasa, 'status': 'success'})
 
-# API REST
+# 🔹 API REST
 class ProductoListAPIView(generics.ListAPIView):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
