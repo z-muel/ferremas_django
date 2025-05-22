@@ -1,14 +1,20 @@
 from rest_framework import serializers
-from .models import Producto, Categoria
+from .models import Producto, Categoria, MensajeContacto
+
 
 class CategoriaSerializer(serializers.ModelSerializer):
+    """Serializador para categorías de productos"""
     class Meta:
         model = Categoria
         fields = ['id', 'nombre']
 
+
 class ProductoSerializer(serializers.ModelSerializer):
-    categoria = CategoriaSerializer()  # Serializador anidado para la categoría
-    disponible = serializers.BooleanField(read_only=True)  # Campo calculado
+    """Serializador para productos de ferretería"""
+    categoria = serializers.PrimaryKeyRelatedField(queryset=Categoria.objects.all())  # Solo ID
+    precio = serializers.DecimalField(max_digits=8, decimal_places=2, min_value=0)
+    stock = serializers.IntegerField(min_value=0)
+    disponible = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Producto
@@ -16,3 +22,9 @@ class ProductoSerializer(serializers.ModelSerializer):
             'codigo', 'nombre', 'marca', 'modelo', 'precio', 'stock',
             'categoria', 'disponible', 'imagen', 'descripcion'
         ]
+
+class ContactoSerializer(serializers.ModelSerializer):
+    """Serializador para mensajes de contacto"""
+    class Meta:
+        model = MensajeContacto
+        fields = ['nombre', 'email', 'asunto', 'mensaje', 'fecha', 'leido']

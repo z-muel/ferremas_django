@@ -1,37 +1,42 @@
 {% extends 'tienda/base.html' %}
+
 {% block content %}
 <div class="container mt-4">
     <!-- Banner Principal -->
     <div class="p-5 mb-4 bg-light rounded-3">
         <div class="container-fluid py-5">
-            <h1 class="display-5 fw-bold">Bienvenido a BJBJKNKK</h1>
+            <h1 class="display-5 fw-bold">Bienvenido a FERREMAS</h1>
             <p class="col-md-8 fs-4">Tu ferretería de confianza con los mejores productos y precios.</p>
         </div>
     </div>
 
     <!-- Sección de Productos Destacados -->
     <h2 class="mb-4">Productos Destacados</h2>
-    <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
-        {% for producto in productos_destacados %}
-        <div class="col">
-            <div class="card h-100">
-                {% if producto.imagen %}
-                <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="height: 200px; object-fit: cover;">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ producto.nombre }}</h5>
-                    <p class="card-text">
-                        <span class="fw-bold">${{ producto.precio }}</span><br>
-                        <small class="text-muted">Stock: {{ producto.stock }}</small>
-                    </p>
-                    <a href="{% url 'agregar_carrito' producto.id %}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-cart-plus"></i> Añadir al carrito
-                    </a>
+    {% if productos_destacados %}
+        <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+            {% for producto in productos_destacados %}
+            <div class="col">
+                <div class="card h-100">
+                    {% if producto.imagen %}
+                    <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ producto.nombre }}</h5>
+                        <p class="card-text">
+                            <span class="fw-bold">${{ producto.precio }}</span><br>
+                            <small class="text-muted">Stock: {{ producto.stock }}</small>
+                        </p>
+                        <a href="{% url 'agregar_carrito' producto.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-cart-plus"></i> Añadir al carrito
+                        </a>
+                    </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
+    {% else %}
+        <div class="alert alert-info">No hay productos destacados disponibles en este momento.</div>
+    {% endif %}
 
     <!-- Sección de Acciones Rápidas -->
     <div class="row mb-5">
@@ -69,6 +74,5 @@
             <li><a href="{% url 'api_categorias' %}" target="_blank">API Categorías (JSON)</a></li>
         </ul>
     </div>
-    <H5>HOLA</H5>
 </div>
 {% endblock %}
