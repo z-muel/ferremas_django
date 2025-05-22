@@ -6,64 +6,127 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from rest_framework import generics
 from transbank.webpay.webpay_plus.transaction import Transaction
 import requests
 from .models import MensajeContacto, Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
+from .forms import ProductoForm
 
-# Vistas principales
+# 🔹 Vistas principales
 def inicio(request):
-    productos = Producto.objects.filter(stock__gt=0)[:4]
-    return render(request, 'tienda/inicio.html', {'productos': productos})
+    productos_destacados = Producto.objects.filter(stock__gt=0)[:4]
+    return render(request, 'tienda/inicio.html', {'productos_destacados': productos_destacados})
 
 def lista_productos(request):
     productos = Producto.objects.all()
     return render(request, 'tienda/productos.html', {'productos': productos})
 
-# Autenticación
+# 🔹 Autenticación
 def registro(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('inicio')
-    else:
-        form = UserCreationForm()
+    form = UserCreationForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        login(request, user)
+        messages.success(request, "Registro exitoso. Bienvenido!")
+        return redirect('inicio')
+    
     return render(request, 'tienda/registro.html', {'form': form})
 
 def login_view(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-        if user is not None:
+        if user:
             login(request, user)
+            messages.success(request, "Inicio de sesión exitoso.")
             return redirect('inicio')
+        else:
+            messages.error(request, "Credenciales incorrectas.")
+    
     return render(request, 'tienda/login.html')
 
-# Contacto
+# 🔹 Contacto
 def contacto(request):
     if request.method == 'POST':
-        MensajeContacto.objects.create(
-            nombre=request.POST.get('nombre'),
-            email=request.POST.get('email'),
-            asunto=request.POST.get('asunto'),
-            mensaje=request.POST.get('mensaje')
-        )
-        messages.success(request, 'Mensaje enviado!')
-        return redirect('contacto')
+        nombre = request.POST.get('nombre', '').strip()
+        email = request.POST.get('email', '').strip()
+        asunto = request.POST.get('asunto', '').strip()
+        mensaje = request.POST.get('mensaje', '').strip()
+        
+        if not nombre or not email or not asunto or not mensaje:
+            messages.error(request, 'Todos los campos son obligatorios')
+        else:
+            MensajeContacto.objects.create(
+                nombre=nombre, email=email, asunto=asunto, mensaje=mensaje
+            )
+            messages.success(request, 'Mensaje enviado!')
+            return redirect('contacto')
+    
     return render(request, 'tienda/contacto.html')
 
-# Carrito
+# 🔹 CRUD de Productos (Solo Administradores)
+@login_required
+def crear_producto(request):
+    if not request.user.is_staff:  # ✅ Solo administradores pueden acceder
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Producto creado exitosamente")
+            return redirect('productos')
+    else:
+        form = ProductoForm()
+    
+    return render(request, 'tienda/crear_producto.html', {'form': form})
+
+@login_required
+def editar_producto(request, producto_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    producto = get_object_or_404(Producto, id=producto_id)
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, request.FILES, instance=producto)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Producto actualizado correctamente")
+            return redirect('productos')
+    else:
+        form = ProductoForm(instance=producto)
+    
+    return render(request, 'tienda/editar_producto.html', {'form': form, 'producto': producto})
+
+@login_required
+def eliminar_producto(request, producto_id):
+    if not request.user.is_staff:
+        raise PermissionDenied
+
+    producto = get_object_or_404(Producto, id=producto_id)
+    producto.delete()
+    messages.success(request, "Producto eliminado exitosamente")
+    return redirect('productos')
+
+# 🔹 Carrito
 @require_POST
 def agregar_al_carrito(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
     carrito = request.session.get('carrito', {})
-    carrito[str(producto_id)] = carrito.get(str(producto_id), 0) + 1
+
+    # ✅ Si el producto ya está en el carrito, aumenta la cantidad
+    if str(producto_id) in carrito:
+        carrito[str(producto_id)] += 1
+    else:
+        carrito[str(producto_id)] = 1
+
     request.session['carrito'] = carrito
-    return redirect('productos')
+    messages.success(request, f"{producto.nombre} agregado al carrito.")
+
+    return redirect('ver_carrito')
 
 def ver_carrito(request):
     carrito = request.session.get('carrito', {})
@@ -71,42 +134,69 @@ def ver_carrito(request):
     total = 0
     
     for producto_id, cantidad in carrito.items():
-        producto = get_object_or_404(Producto, id=producto_id)
-        subtotal = producto.precio * cantidad
-        productos.append({
-            'producto': producto,
-            'cantidad': cantidad,
-            'subtotal': subtotal
-        })
-        total += subtotal
+        producto = Producto.objects.filter(id=int(producto_id)).first()
+        if producto:
+            subtotal = producto.precio * cantidad
+            productos.append({
+                'producto': producto,
+                'cantidad': cantidad,
+                'subtotal': subtotal
+            })
+            total += subtotal
     
     return render(request, 'tienda/carrito.html', {
         'productos': productos,
         'total': total
     })
 
-# Webpay (versión simplificada)
+@require_POST
+def actualizar_carrito(request, producto_id):
+    cantidad = int(request.POST.get('cantidad', 1))
+    carrito = request.session.get('carrito', {})
+
+    if cantidad > 0:
+        carrito[str(producto_id)] = cantidad
+    else:
+        carrito.pop(str(producto_id), None)  # ✅ Si la cantidad es 0, elimina el producto
+
+    request.session['carrito'] = carrito
+    return redirect('ver_carrito')
+
+@require_POST
+def eliminar_del_carrito(request, producto_id):
+    carrito = request.session.get('carrito', {})
+    carrito.pop(str(producto_id), None)  # ✅ Elimina el producto del carrito
+    request.session['carrito'] = carrito
+    messages.success(request, "Producto eliminado del carrito.")
+    
+    return redirect('ver_carrito')
+
+# 🔹 Webpay (versión mejorada)
 def iniciar_pago(request):
     carrito = request.session.get('carrito', {})
-    total = sum(
-        Producto.objects.get(id=int(id)).precio * cantidad 
-        for id, cantidad in carrito.items()
-    )
+    total = 0
+    
+    for producto_id, cantidad in carrito.items():
+        producto = Producto.objects.filter(id=int(producto_id)).first()
+        if producto:
+            total += producto.precio * cantidad
     
     response = Transaction().create(
-        buy_order="orden_"+str(request.user.id),
+        buy_order=f"orden_{request.user.id}",
         session_id=request.session.session_key,
         amount=total,
         return_url=request.build_absolute_uri(reverse('inicio'))
     )
+    
     return redirect(response['url'])
 
-# API Banco Central (simulada)
+# 🔹 API Banco Central (optimizada)
 def convertir_moneda(request):
-    # Datos de ejemplo para la evaluación
-    return JsonResponse({'valor': 35000, 'status': 'success'})
+    monto = float(request.GET.get('monto', 1))  # Monto base
+    tasa = 890.75  # Simulación de tasa CLP/USD
+    return JsonResponse({'monto_convertido': monto * tasa, 'tasa': tasa, 'status': 'success'})
 
-# API REST
+# 🔹 API REST
 class ProductoListAPIView(generics.ListAPIView):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer

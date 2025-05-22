@@ -1,40 +1,26 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
-from .views import (
-    inicio,
-    lista_productos,
-    contacto,
-    registro,
-    login_view,
-    agregar_al_carrito,
-    ver_carrito,
-    ProductoListAPIView,
-    CategoriaListAPIView,
-    iniciar_pago,
-)
-
-# Importa las vistas de API que creamos anteriormente
-from .api import (
-    ContactoCreateAPIView,
-    MonedaAPIView,
-    WebpayAPIView,
-)
 
 urlpatterns = [
-    # URLs de vistas HTML (frontend)
-    path('', inicio, name='inicio'),
-    path('productos/', lista_productos, name='productos'),
-    path('contacto/', contacto, name='contacto'),
-    path('registro/', registro, name='registro'),
-    path('login/', login_view, name='login'),
-    path('agregar-carrito/<int:producto_id>/', agregar_al_carrito, name='agregar_carrito'),
-    path('carrito/', ver_carrito, name='carrito'),
-    path('iniciar-pago/', iniciar_pago, name='iniciar_pago'),
+    # URLs del sitio (frontend)
+    path('', views.inicio, name='inicio'),
+    path('productos/', views.lista_productos, name='productos'),
+    path('productos/crear/', views.crear_producto, name='crear_producto'),
+    path('productos/editar/<int:producto_id>/', views.editar_producto, name='editar_producto'),
+    path('productos/eliminar/<int:producto_id>/', views.eliminar_producto, name='eliminar_producto'),
+    path('contacto/', views.contacto, name='contacto'),
+    path('registro/', views.registro, name='registro'),
+    path('login/', views.login_view, name='login'),
+    
+    # 🔹 Carrito de compras
+    path('agregar-carrito/<int:producto_id>/', views.agregar_al_carrito, name='agregar_carrito'),
+    path('carrito/', views.ver_carrito, name='ver_carrito'),
+    path('carrito/actualizar/<int:producto_id>/', views.actualizar_carrito, name='actualizar_carrito'),  # ✅ Nuevo
+    path('carrito/eliminar/<int:producto_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),  # ✅ Nuevo
+    
+    # 🔹 Pago
+    path('iniciar-pago/', views.iniciar_pago, name='iniciar_pago'),
 
-    # URLs de APIs (REST)
-    path('api/productos/', ProductoListAPIView.as_view(), name='api_productos'),
-    path('api/categorias/', CategoriaListAPIView.as_view(), name='api_categorias'),
-    path('api/contacto/', ContactoCreateAPIView.as_view(), name='api_contacto'),
-    path('api/moneda/', MonedaAPIView.as_view(), name='api_moneda'),
-    path('api/webpay/', WebpayAPIView.as_view(), name='api_webpay'),
+    # 🔹 APIs separadas
+    path('api/', include('tienda.urls_api')),
 ]
