@@ -192,7 +192,7 @@ def iniciar_pago(request):
     transaction = Transaction(options)
 
     try:
-        response = transaction.create(buy_order, session_id, total, return_url, Timeout=10)
+        response = transaction.create(buy_order, session_id, total, return_url)
         print(f"Respuesta completa de Webpay: {response}")  # Depuración en consola
 
         if 'url' in response and 'token' in response:
@@ -211,27 +211,36 @@ def iniciar_pago(request):
 
 
 def confirmar_pago(request):
-    token = request.GET.get("token_ws", None)
-
-    if not token:
-        messages.error(request, "Error en la transacción.")
+    token_ws = request.GET.get("token_ws")
+    if not token_ws:
+        messages.error(request, "Error en la transacción: Token no recibido.")
         return redirect('ver_carrito')
 
-    transaction = Transaction(WebpayOptions(
-        api_key="597020000541",
-        commerce_code="597020000541",
+    # ✅ Inicializar `Transaction` con credenciales de prueba
+    options = WebpayOptions(
+        api_key="579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C",
+        commerce_code="597055555532",
         integration_type=IntegrationType.TEST
-    ))
+    )
+    transaction = Transaction(options)
 
-    response = transaction.commit(token)
+    try:
+        response = transaction.commit(token_ws)
+        print("Respuesta de Webpay en confirmación:", response)  # ✅ Verifica los datos en consola
 
-    if response['status'] == 'AUTHORIZED':
-        messages.success(request, "Pago realizado exitosamente.")
-        request.session['carrito'] = {}  # Vaciar carrito tras compra
-        return redirect('productos')
-    else:
-        messages.error(request, "El pago no pudo completarse.")
+        if response['status'] == 'AUTHORIZED':
+            messages.success(request, "Pago realizado exitosamente.")
+            request.session['carrito'] = {}  # ✅ Vaciar carrito tras compra
+            return redirect('productos')
+        else:
+            messages.error(request, "El pago no pudo completarse.")
+            return redirect('ver_carrito')
+
+    except Exception as e:
+        print(f"Error en Webpay al confirmar pago: {e}")  # ✅ Verifica si hay otro error específico
+        messages.error(request, f"Error en Webpay: {e}")
         return redirect('ver_carrito')
+
 
 
 # API Banco Central (optimizada)
