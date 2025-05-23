@@ -96,7 +96,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # 11. Configuración de Webpay Plus (Modo TEST)
 TRANSBANK_WEBPAY = {
-    'COMMERCE_CODE': '597020000541',  # Código de prueba correcto
-    'API_KEY': '597020000541',  # ✅ Usa el mismo código en modo TEST
-    'ENVIRONMENT': 'TEST',  # ✅ Confirmar que esté en entorno de prueba
+    'COMMERCE_CODE': '597055555532',  # Código de prueba
+    'API_KEY': '579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C',
+    'ENVIRONMENT': 'TEST',  # Modo prueba
 }
