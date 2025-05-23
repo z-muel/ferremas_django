@@ -19,8 +19,9 @@ urlpatterns = [
     path('carrito/eliminar/<int:producto_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),  # ✅ Nuevo
     
     # 🔹 Pago
-    path('iniciar-pago/', views.iniciar_pago, name='iniciar_pago'),
-    path('confirmar-pago/', views.confirmar_pago, name='confirmar_pago'),
+    path("webpay/pagar/", views.iniciar_pago, name="webpay_pagar"),
+    path("webpay/confirmacion/", views.confirmar_pago, name="webpay_confirmacion"),
+
     
 
     # 🔹 APIs separadas

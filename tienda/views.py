@@ -15,7 +15,7 @@ from .models import MensajeContacto, Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
 from .forms import ProductoForm
 
-# 🔹 Vistas principales
+# Vistas principales
 def inicio(request):
     productos_destacados = Producto.objects.filter(stock__gt=0)[:4]
     return render(request, 'tienda/inicio.html', {'productos_destacados': productos_destacados})
@@ -24,7 +24,7 @@ def lista_productos(request):
     productos = Producto.objects.all()
     return render(request, 'tienda/productos.html', {'productos': productos})
 
-# 🔹 Autenticación
+# Autenticación
 def registro(request):
     form = UserCreationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -49,7 +49,7 @@ def login_view(request):
     
     return render(request, 'tienda/login.html')
 
-# 🔹 Contacto
+# Contacto
 def contacto(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre', '').strip()
@@ -68,10 +68,10 @@ def contacto(request):
     
     return render(request, 'tienda/contacto.html')
 
-# 🔹 CRUD de Productos (Solo Administradores)
+# CRUD de Productos (Solo Administradores)
 @login_required
 def crear_producto(request):
-    if not request.user.is_staff:  # ✅ Solo administradores pueden acceder
+    if not request.user.is_staff:  # Solo administradores pueden acceder
         raise PermissionDenied
 
     if request.method == 'POST':
@@ -112,13 +112,13 @@ def eliminar_producto(request, producto_id):
     messages.success(request, "Producto eliminado exitosamente")
     return redirect('productos')
 
-# 🔹 Carrito
+# Carrito
 @require_POST
 def agregar_al_carrito(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
     carrito = request.session.get('carrito', {})
 
-    # ✅ Si el producto ya está en el carrito, aumenta la cantidad
+    # Si el producto ya está en el carrito, aumenta la cantidad
     if str(producto_id) in carrito:
         carrito[str(producto_id)] += 1
     else:
@@ -158,7 +158,7 @@ def actualizar_carrito(request, producto_id):
     if cantidad > 0:
         carrito[str(producto_id)] = cantidad
     else:
-        carrito.pop(str(producto_id), None)  # ✅ Si la cantidad es 0, elimina el producto
+        carrito.pop(str(producto_id), None)  # Si la cantidad es 0, elimina el producto
 
     request.session['carrito'] = carrito
     return redirect('ver_carrito')
@@ -166,46 +166,46 @@ def actualizar_carrito(request, producto_id):
 @require_POST
 def eliminar_del_carrito(request, producto_id):
     carrito = request.session.get('carrito', {})
-    carrito.pop(str(producto_id), None)  # ✅ Elimina el producto del carrito
+    carrito.pop(str(producto_id), None)  # Elimina el producto del carrito
     request.session['carrito'] = carrito
     messages.success(request, "Producto eliminado del carrito.")
     
     return redirect('ver_carrito')
 
-# 🔹 Webpay 
+# Webpay 
 def iniciar_pago(request):
-    print("Iniciar pago ejecutándose...")  # ✅ Confirmación en consola
+    print("Iniciar pago ejecutándose...")  # Depuración en consola
     carrito = request.session.get('carrito', {})
     total = sum(Producto.objects.get(id=int(pid)).precio * cantidad for pid, cantidad in carrito.items())
 
-    buy_order = f"orden_{request.user.id}"
-    session_id = request.session.session_key
-    return_url = request.build_absolute_uri(reverse('confirmar_pago'))
+    buy_order = f"ORD-{request.session.session_key}"[:26]  
+    session_id = request.session.session_key or "SESSION1234"
+    return_url = request.build_absolute_uri(reverse('webpay_confirmacion'))
 
+    # credenciales de prueba
     options = WebpayOptions(
-        api_key="597020000541",
-        commerce_code="597020000541",
+        api_key="579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C",
+        commerce_code="597055555532",
         integration_type=IntegrationType.TEST
     )
 
     transaction = Transaction(options)
 
     try:
-        response = transaction.create(buy_order, session_id, total, return_url)
-        print(f"Respuesta completa de Webpay: {response}")  # ✅ Verifica la respuesta
+        response = transaction.create(buy_order, session_id, total, return_url, Timeout=10)
+        print(f"Respuesta completa de Webpay: {response}")  # Depuración en consola
 
-        if 'url' in response:
-            print(f"Redirigiendo a Webpay: {response['url']}")  # ✅ Confirmación en consola
-            return redirect(response['url'])
+        if 'url' in response and 'token' in response:
+            return redirect(f"{response['url']}?token_ws={response['token']}")
         else:
-            print("Error en Webpay: No se recibió una URL de pago válida.")  # ✅ Depuración extra
             messages.error(request, "Error en Webpay: No se recibió una URL de pago válida.")
             return redirect('ver_carrito')
 
     except Exception as e:
-        print(f"Error en Webpay capturado: {e}")  # ✅ Imprimir el error exacto en consola
+        print(f"Error en Webpay capturado: {e}")  # Depuración en consola
         messages.error(request, f"Error en Webpay: {e}")
         return redirect('ver_carrito')
+
 
 
 
@@ -227,20 +227,20 @@ def confirmar_pago(request):
 
     if response['status'] == 'AUTHORIZED':
         messages.success(request, "Pago realizado exitosamente.")
-        request.session['carrito'] = {}  # ✅ Vaciar carrito tras compra
+        request.session['carrito'] = {}  # Vaciar carrito tras compra
         return redirect('productos')
     else:
         messages.error(request, "El pago no pudo completarse.")
         return redirect('ver_carrito')
 
 
-# 🔹 API Banco Central (optimizada)
+# API Banco Central (optimizada)
 def convertir_moneda(request):
     monto = float(request.GET.get('monto', 1))  # Monto base
     tasa = 890.75  # Simulación de tasa CLP/USD
     return JsonResponse({'monto_convertido': monto * tasa, 'tasa': tasa, 'status': 'success'})
 
-# 🔹 API REST
+# API REST
 class ProductoListAPIView(generics.ListAPIView):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
