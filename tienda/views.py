@@ -14,6 +14,9 @@ import requests
 from .models import MensajeContacto, Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
 from .forms import ProductoForm
+from django.views.decorators.csrf import csrf_exempt
+
+
 
 # Vistas principales
 def inicio(request):
@@ -113,21 +116,30 @@ def eliminar_producto(request, producto_id):
     return redirect('productos')
 
 # Carrito
+@csrf_exempt  # Desactiva CSRF solo para pruebas.
+
 @require_POST
 def agregar_al_carrito(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
     carrito = request.session.get('carrito', {})
 
-    # Si el producto ya está en el carrito, aumenta la cantidad
     if str(producto_id) in carrito:
         carrito[str(producto_id)] += 1
     else:
         carrito[str(producto_id)] = 1
 
     request.session['carrito'] = carrito
-    messages.success(request, f"{producto.nombre} agregado al carrito.")
+    request.session.modified = True
 
-    return redirect('ver_carrito')
+    # Si la solicitud viene de Postman (API), devolver JSON correctamente
+    if request.headers.get('Accept') == 'application/json' or request.GET.get('api') == 'true':
+        return JsonResponse({"mensaje": f"{producto.nombre} agregado al carrito.", "status": "success"})
+
+    # Si la solicitud es desde el navegador, redirigir al carrito
+    messages.success(request, f"{producto.nombre} agregado al carrito.")
+    return redirect(reverse('ver_carrito'))
+
+
 
 def ver_carrito(request):
     carrito = request.session.get('carrito', {})
@@ -139,16 +151,20 @@ def ver_carrito(request):
         if producto:
             subtotal = producto.precio * cantidad
             productos.append({
-                'producto': producto,
+                'producto_id': producto.id,
+                'nombre': producto.nombre,
+                'precio': producto.precio,
                 'cantidad': cantidad,
                 'subtotal': subtotal
             })
             total += subtotal
-    
-    return render(request, 'tienda/carrito.html', {
-        'productos': productos,
-        'total': total
-    })
+
+    # Si la solicitud viene de Postman o es una API, devolver JSON
+    if request.headers.get('Accept') == 'application/json' or request.GET.get('api') == 'true':
+        return JsonResponse({'productos': productos, 'total': total})
+
+    return render(request, 'tienda/carrito.html', {'productos': productos, 'total': total})
+
 
 @require_POST
 def actualizar_carrito(request, producto_id):
@@ -162,6 +178,8 @@ def actualizar_carrito(request, producto_id):
 
     request.session['carrito'] = carrito
     return redirect('ver_carrito')
+
+@csrf_exempt  # Desactiva CSRF solo para pruebas
 
 @require_POST
 def eliminar_del_carrito(request, producto_id):
@@ -216,7 +234,7 @@ def confirmar_pago(request):
         messages.error(request, "Error en la transacción: Token no recibido.")
         return redirect('ver_carrito')
 
-    # ✅ Inicializar `Transaction` con credenciales de prueba
+    # Inicializar `Transaction` con credenciales de prueba
     options = WebpayOptions(
         api_key="579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C",
         commerce_code="597055555532",
@@ -226,18 +244,18 @@ def confirmar_pago(request):
 
     try:
         response = transaction.commit(token_ws)
-        print("Respuesta de Webpay en confirmación:", response)  # ✅ Verifica los datos en consola
+        print("Respuesta de Webpay en confirmación:", response)  # Verifica los datos en consola
 
         if response['status'] == 'AUTHORIZED':
             messages.success(request, "Pago realizado exitosamente.")
-            request.session['carrito'] = {}  # ✅ Vaciar carrito tras compra
+            request.session['carrito'] = {}  # Vaciar carrito tras compra
             return redirect('productos')
         else:
             messages.error(request, "El pago no pudo completarse.")
             return redirect('ver_carrito')
 
     except Exception as e:
-        print(f"Error en Webpay al confirmar pago: {e}")  # ✅ Verifica si hay otro error específico
+        print(f"Error en Webpay al confirmar pago: {e}")  # Verifica si hay otro error específico
         messages.error(request, f"Error en Webpay: {e}")
         return redirect('ver_carrito')
 

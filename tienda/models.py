@@ -50,7 +50,7 @@ class Producto(models.Model):
         Categoria,
         on_delete=models.PROTECT,  # Evita eliminaciones accidentales
         verbose_name=_('Categoría'),
-        default=1  # ✅ Se asegura que haya una categoría predeterminada
+        default=1  # Se asegura que haya una categoría predeterminada
     )
     imagen = models.ImageField(_('Imagen'), upload_to='productos/', null=True, blank=True)
     descripcion = models.TextField(_('Descripción'), blank=True)

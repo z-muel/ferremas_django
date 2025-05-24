@@ -27,7 +27,7 @@
                             <small class="text-muted">Stock: {{ producto.stock }}</small>
                         </p>
                         
-                        <!-- ✅ Formulario corregido para agregar al carrito -->
+                        <!-- Formulario para agregar al carrito -->
                         <form method="post" action="{% url 'agregar_carrito' producto.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-sm btn-primary">

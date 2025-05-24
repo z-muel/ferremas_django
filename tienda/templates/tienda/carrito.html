@@ -24,7 +24,7 @@
                         <td><img src="{{ item.producto.imagen.url }}" alt="{{ item.producto.nombre }}" width="50"></td>
                         <td>${{ item.producto.precio }}</td>
                         <td>
-                            <form method="post" action="{% url 'actualizar_carrito' item.producto.id %}">
+                            <form method="post" action="{% url 'actualizar_carrito' item.producto_id %}">
                                 {% csrf_token %}
                                 <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" class="form-control d-inline-block" style="width: 60px;">
                                 <button type="submit" class="btn btn-sm btn-primary">Actualizar</button>
@@ -32,7 +32,7 @@
                         </td>
                         <td>${{ item.subtotal }}</td>
                         <td>
-                            <form method="post" action="{% url 'eliminar_del_carrito' item.producto.id %}">
+                            <form method="post" action="{% url 'eliminar_del_carrito' item.producto_id %}">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
                             </form>

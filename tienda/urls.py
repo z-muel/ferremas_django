@@ -12,18 +12,18 @@ urlpatterns = [
     path('registro/', views.registro, name='registro'),
     path('login/', views.login_view, name='login'),
     
-    # 🔹 Carrito de compras
+    # Carrito de compras
     path('agregar-carrito/<int:producto_id>/', views.agregar_al_carrito, name='agregar_carrito'),
     path('carrito/', views.ver_carrito, name='ver_carrito'),
-    path('carrito/actualizar/<int:producto_id>/', views.actualizar_carrito, name='actualizar_carrito'),  # ✅ Nuevo
-    path('carrito/eliminar/<int:producto_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),  # ✅ Nuevo
+    path('carrito/actualizar/<int:producto_id>/', views.actualizar_carrito, name='actualizar_carrito'),  
+    path('carrito/eliminar/<int:producto_id>/', views.eliminar_del_carrito, name='eliminar_del_carrito'),  
     
-    # 🔹 Pago
+    # Pago
     path("webpay/pagar/", views.iniciar_pago, name="webpay_pagar"),
     path("webpay/confirmacion/", views.confirmar_pago, name="webpay_confirmacion"),
 
     
 
-    # 🔹 APIs separadas
+    # APIs separadas
     path('api/', include('tienda.urls_api')),
 ]

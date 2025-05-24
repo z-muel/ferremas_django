@@ -34,6 +34,3 @@ python manage.py runserver
 ## Estructura
 `/tienda` - Aplicación principal con modelos, vistas y templates
 
-## SuperUsuario
-Usuario: admin
-Contraseña: onetwo3admin
