@@ -15,6 +15,8 @@ from .models import MensajeContacto, Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
 from .forms import ProductoForm
 from django.views.decorators.csrf import csrf_exempt
+from .forms import RegistroCompletoForm
+
 
 
 
@@ -29,14 +31,20 @@ def lista_productos(request):
 
 # Autenticación
 def registro(request):
-    form = UserCreationForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        user = form.save()
-        login(request, user)
-        messages.success(request, "Registro exitoso. Bienvenido!")
-        return redirect('inicio')
+    if request.method == 'POST':
+        form = RegistroCompletoForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, "Registro exitoso. ¡Bienvenido!")
+            return redirect('inicio')
+        else:
+            messages.error(request, "Error en el registro. Revisa los datos ingresados.")
+    else:
+        form = RegistroCompletoForm()
     
     return render(request, 'tienda/registro.html', {'form': form})
+
 
 def login_view(request):
     if request.method == 'POST':

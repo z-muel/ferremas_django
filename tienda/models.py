@@ -74,10 +74,35 @@ class Producto(models.Model):
         """Indica si el producto está disponible y actualizado recientemente"""
         return self.stock > 0 and self.actualizado > timezone.now() - timedelta(days=30)
 
+# Opciones predefinidas
+NACIONALIDADES = [
+    ('chile', 'Chile'),
+    ('argentina', 'Argentina'),
+    ('peru', 'Perú'),
+    ('mexico', 'México'),
+]
+
+SEXO_CHOICES = [
+    ('masculino', 'Masculino'),
+    ('femenino', 'Femenino'),
+    ('otro', 'Otro'),
+]
+
+
 
 class Cliente(models.Model):
-    """Extensión del modelo User para información adicional"""
+    """Extensión del modelo User para datos adicionales del usuario"""
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cliente')
+
+    rut = models.CharField(
+        _('RUT'),
+        max_length=12,
+        unique=True,
+        validators=[
+            RegexValidator(regex=r'^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$', message=_('Formato: 12.345.678-9'))
+        ]
+    )
+
     telefono = models.CharField(
         _('Teléfono'),
         max_length=20,
@@ -86,7 +111,13 @@ class Cliente(models.Model):
             RegexValidator(regex=r'^\+?[0-9]{9,15}$', message=_('Formato: +56912345678'))
         ]
     )
+
     direccion = models.TextField(_('Dirección'), blank=True, max_length=300)
+    comuna = models.CharField(_('Comuna'), max_length=100)
+
+    nacionalidad = models.CharField(_('Nacionalidad'), max_length=20, choices=NACIONALIDADES)
+    sexo = models.CharField(_('Sexo'), max_length=10, choices=SEXO_CHOICES)
+    fecha_nacimiento = models.DateField(_('Fecha de nacimiento'))
 
     class Meta:
         verbose_name = _('Cliente')
@@ -94,6 +125,7 @@ class Cliente(models.Model):
 
     def __str__(self):
         return f"{self.usuario.get_full_name() or self.usuario.username}"
+
 
 
 class MensajeContacto(models.Model):
