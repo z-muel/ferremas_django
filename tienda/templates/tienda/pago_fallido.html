@@ -1,10 +1,11 @@
-<h1>❌ Pago Fallido 🚨</h1>
-<p>Hubo un problema con tu pago.</p>
-<p>Estado de la transacción: {{ detalle_pago.status }}</p>
-<a href="{% url 'ver_carrito' %}" class="btn btn-danger">Reintentar</a>
+<h1>❌ No pudimos procesar tu pago</h1>
+<p>¡Lo sentimos! Hubo un problema y no pudimos confirmar tu pago, por lo que **no hicimos ningún cargo**.</p>
+<p>Por favor, revisa los datos e inténtalo nuevamente o prueba con otro medio de pago.</p>
 
+{% if detalle_pago %}
+  <p><strong>Estado de la transacción:</strong> {{ detalle_pago.status }}</p>
+  <p><strong>Mensaje de rechazo:</strong> {{ error_message }}</p>
+{% endif %}
+
+<a href="{% url 'ver_carrito' %}" class="btn btn-danger">Volver al carrito</a>
 <p>Si el problema persiste, por favor contacta a nuestro soporte.</p>
-<p>Gracias por tu comprensión.</p>
-<p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
-
-

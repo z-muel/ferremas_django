@@ -1,12 +1,11 @@
 <h1>✅ ¡Pago Exitoso! 🎉</h1>
 <p>Tu pago se ha completado correctamente.</p>
-<p>Orden: {{ detalle_pago.buy_order }}</p>
-<p>Monto pagado: ${{ detalle_pago.amount }}</p>
+
+<p><strong>Orden:</strong> {{ buy_order }}</p>
+<p><strong>Monto pagado:</strong> ${{ amount }}</p>
+<p><strong>Código de autorización:</strong> {{ authorization_code }}</p>
+<p><strong>Fecha de la transacción:</strong> {{ transaction_date }}</p>
+
 <a href="{% url 'productos' %}" class="btn btn-success">Volver a productos</a>
 
-
 <p>Gracias por tu compra. Tu pedido será procesado en breve.</p>
-<p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
-<p>Recuerda que puedes revisar el estado de tu pedido en tu cuenta.</p>
-<p>¡Esperamos verte de nuevo pronto!</p>
-
