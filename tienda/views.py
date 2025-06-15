@@ -207,17 +207,19 @@ def iniciar_pago(request):
 
     buy_order = f"ORD-{request.session.session_key}"[:26]  
     session_id = request.session.session_key or "SESSION1234"
-    return_url = request.build_absolute_uri(reverse('webpay_confirmacion'))
+    return_url = request.build_absolute_uri(reverse('webpay_confirmacion')) 
 
     # credenciales de prueba
     options = WebpayOptions(
-        api_key="579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C",
-        commerce_code="597055555532",
-        integration_type=IntegrationType.TEST
-    )
+    api_key=os.getenv("WEBPAY_API_KEY"),
+    commerce_code=os.getenv("WEBPAY_COMMERCE_CODE"),
+    integration_type=IntegrationType.TEST
+)
+
 
     transaction = Transaction(options)
 
+    
     try:
         response = transaction.create(buy_order, session_id, total, return_url)
         print(f"Respuesta completa de Webpay: {response}")  # Depuración en consola
@@ -225,57 +227,83 @@ def iniciar_pago(request):
         if 'url' in response and 'token' in response:
             return redirect(f"{response['url']}?token_ws={response['token']}")
         else:
-            messages.error(request, "Error en Webpay: No se recibió una URL de pago válida.")
-            return redirect('ver_carrito')
+            messages.error(request, "❌ Error en Webpay: No se recibió una URL de pago válida.")
+            return redirect('pago_fallido')  # Redirigir a la pantalla de fallo en lugar del carrito
 
     except Exception as e:
-        print(f"Error en Webpay capturado: {e}")  # Depuración en consola
-        messages.error(request, f"Error en Webpay: {e}")
-        return redirect('ver_carrito')
-
-
-
+        print(f"⚠ Error en Webpay capturado: {e}")
+        messages.error(request, f"Error técnico en Webpay: {e}")
+        return redirect('pago_fallido')  # Mostrar detalles del error en la pantalla de fallo
 
 
 def confirmar_pago(request):
     token_ws = request.GET.get("token_ws")
-    if not token_ws:
-        messages.error(request, "Error en la transacción: Token no recibido.")
-        return redirect('ver_carrito')
+    tbk_token = request.GET.get("TBK_TOKEN")  # 🔍 Detectamos TBK_TOKEN cuando la compra es anulada
 
+    print(f"🔍 Token recibido: {token_ws}")  # Depuración
+    print(f"🔍 TBK_TOKEN recibido: {tbk_token}")  # Depuración
+
+    if tbk_token:  # 🚨 Si Webpay devuelve TBK_TOKEN, significa que el usuario anuló la compra
+        messages.info(request, "❌ Has cancelado la compra. No se ha realizado ningún cargo.")
+        return redirect('pago_cancelado')
+
+    if not token_ws:  # ❌ Si no hay token_ws, hubo un error en la transacción
+        messages.error(request, "❌ Error en la transacción: Token no recibido.")
+        return redirect('pago_fallido')
+
+    # 🔒 Usar credenciales desde variables de entorno
     options = WebpayOptions(
-        api_key=os.getenv("TRANSBANK_API_KEY"),
-        commerce_code=os.getenv("TRANSBANK_COMMERCE_CODE"),
+        api_key=os.getenv("WEBPAY_API_KEY"),
+        commerce_code=os.getenv("WEBPAY_COMMERCE_CODE"),
         integration_type=IntegrationType.TEST
     )
     transaction = Transaction(options)
 
     try:
         response = transaction.commit(token_ws)
-        print("Respuesta de Webpay en confirmación:", response)
+        print("✅ Respuesta de Webpay:", response)  # Depuración
 
-        if response['status'] == 'AUTHORIZED':
-            messages.success(request, "Pago realizado exitosamente.")
-            
-            # 🔥 Vaciar el carrito correctamente
-            request.session.pop('carrito', None)
-            request.session.modified = True
+        if response.get('status') == 'AUTHORIZED':
+            messages.success(request, "✅ Pago realizado exitosamente.")
 
-            # 🚀 Redirigir a pantalla de pago exitoso
-            return render(request, 'tienda/pago_exitoso.html', {'detalle_pago': response})
+            # 🔥 Vaciar la sesión completamente para eliminar el carrito
+            request.session.flush()
+
+            # 🚀 Pasar más detalles del pago a la plantilla
+            return render(request, 'tienda/pago_exitoso.html', {
+                'buy_order': response.get('buy_order'),
+                'amount': response.get('amount'),
+                'authorization_code': response.get('authorization_code'),
+                'transaction_date': response.get('transaction_date'),
+                'detalle_pago': response
+            })
 
         else:
-            messages.error(request, "El pago fue rechazado o no pudo completarse.")
-
-            # ❗ **NO vaciar el carrito si el pago fue rechazado**
-            return render(request, 'tienda/pago_fallido.html', {'detalle_pago': response})
+            messages.error(request, "❌ El pago fue rechazado o no pudo completarse.")
+            return render(request, 'tienda/pago_fallido.html', {
+                'detalle_pago': response,
+                'error_message': response.get('response_code', 'Error desconocido')
+            })
 
     except Exception as e:
-        print(f"Error en Webpay al confirmar pago: {e}")
+        print(f"⚠ Error en Webpay al confirmar pago: {e}")
         messages.error(request, f"Error en Webpay: {e}")
-        return redirect('ver_carrito')
+        return render(request, 'tienda/pago_fallido.html', {
+            'error_message': str(e)
+        })
 
+# ✅ Rutas para pantallas de éxito y fallo
+def pago_exitoso(request):
+    return render(request, 'tienda/pago_exitoso.html')
 
+def pago_fallido(request):
+    return render(request, 'tienda/pago_fallido.html')
+
+# Pantalla de cancelación de pago
+
+def pago_cancelado(request):
+    messages.info(request, "❌ Has cancelado la compra. No se ha realizado ningún cargo.")
+    return render(request, 'tienda/pago_cancelado.html', {'mensaje_cancelado': "Has cancelado tu compra. No se ha realizado ningún cobro."})
 
 
 

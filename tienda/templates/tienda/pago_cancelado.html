@@ -1,0 +1,9 @@
+{% if mensaje_cancelado %}
+<div class="alert alert-warning text-center" role="alert">
+    ❌ <strong>{{ mensaje_cancelado }}</strong>
+</div>
+{% endif %}
+
+<h1>Compra anulada</h1>
+<p>Si deseas intentarlo nuevamente, puedes volver a la tienda.</p>
+<a href="{% url 'productos' %}" class="btn btn-primary">Volver a la tienda</a>

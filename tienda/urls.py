@@ -21,8 +21,11 @@ urlpatterns = [
     # Pago
     path("webpay/pagar/", views.iniciar_pago, name="webpay_pagar"),
     path("webpay/confirmacion/", views.confirmar_pago, name="webpay_confirmacion"),
+    path('pago-exitoso/', views.pago_exitoso, name='pago_exitoso'),
+    path('pago-fallido/', views.pago_fallido, name='pago_fallido'),
+    path('pago-cancelado/', views.pago_cancelado, name='pago_cancelado'),
 
-    
+
 
     # APIs separadas
     path('api/', include('tienda.urls_api')),

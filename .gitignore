@@ -1,24 +1,32 @@
 # Entorno virtual
 venv/
 
-# Base de datos
+# Base de datos y archivos generados
 db.sqlite3
+*.log
+migrations/
 
-# Archivos de entorno
+# Archivos de entorno (evitar exponer credenciales)
 .env
 *.env
+config.env
+secret.env
 
 # Archivos de Python cache
 __pycache__/
 *.pyc
 
-# Archivos de IDE
+# Configuración de IDEs y sistemas
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db
 
 # Archivos de medios subidos por usuarios
 /media/
 !media/productos/.gitkeep
+/media/temp/
+/media/backups/
 
 # Archivos estáticos generados
 /staticfiles/
