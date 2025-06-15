@@ -99,7 +99,9 @@ SESSION_SAVE_EVERY_REQUEST = True
 # Cargar variables desde `.env`
 load_dotenv()
 TRANSBANK_WEBPAY = {
-    'COMMERCE_CODE': os.getenv("TRANSBANK_COMMERCE_CODE"),
-    'API_KEY': os.getenv("TRANSBANK_API_KEY"),
-    'ENVIRONMENT': os.getenv("TRANSBANK_ENVIRONMENT", "TEST"),
+    'COMMERCE_CODE': os.getenv("WEBPAY_COMMERCE_CODE"),
+    'API_KEY': os.getenv("WEBPAY_API_KEY"),
+    'ENVIRONMENT': os.getenv("WEBPAY_ENVIRONMENT", "TEST"),
 }
+
+
