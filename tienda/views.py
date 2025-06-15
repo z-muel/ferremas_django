@@ -16,6 +16,7 @@ from .serializers import ProductoSerializer, CategoriaSerializer
 from .forms import ProductoForm
 from django.views.decorators.csrf import csrf_exempt
 from .forms import RegistroCompletoForm
+import os
 
 
 
@@ -242,30 +243,39 @@ def confirmar_pago(request):
         messages.error(request, "Error en la transacción: Token no recibido.")
         return redirect('ver_carrito')
 
-    # Inicializar `Transaction` con credenciales de prueba
     options = WebpayOptions(
-        api_key="579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C",
-        commerce_code="597055555532",
+        api_key=os.getenv("TRANSBANK_API_KEY"),
+        commerce_code=os.getenv("TRANSBANK_COMMERCE_CODE"),
         integration_type=IntegrationType.TEST
     )
     transaction = Transaction(options)
 
     try:
         response = transaction.commit(token_ws)
-        print("Respuesta de Webpay en confirmación:", response)  # Verifica los datos en consola
+        print("Respuesta de Webpay en confirmación:", response)
 
         if response['status'] == 'AUTHORIZED':
             messages.success(request, "Pago realizado exitosamente.")
-            request.session['carrito'] = {}  # Vaciar carrito tras compra
-            return redirect('productos')
+            
+            # 🔥 Vaciar el carrito correctamente
+            request.session.pop('carrito', None)
+            request.session.modified = True
+
+            # 🚀 Redirigir a pantalla de pago exitoso
+            return render(request, 'tienda/pago_exitoso.html', {'detalle_pago': response})
+
         else:
-            messages.error(request, "El pago no pudo completarse.")
-            return redirect('ver_carrito')
+            messages.error(request, "El pago fue rechazado o no pudo completarse.")
+
+            # ❗ **NO vaciar el carrito si el pago fue rechazado**
+            return render(request, 'tienda/pago_fallido.html', {'detalle_pago': response})
 
     except Exception as e:
-        print(f"Error en Webpay al confirmar pago: {e}")  # Verifica si hay otro error específico
+        print(f"Error en Webpay al confirmar pago: {e}")
         messages.error(request, f"Error en Webpay: {e}")
         return redirect('ver_carrito')
+
+
 
 
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # 1. Configuración de rutas base
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -95,8 +96,10 @@ SESSION_COOKIE_AGE = 86400  # 1 día en segundos
 SESSION_SAVE_EVERY_REQUEST = True
 
 # 11. Configuración de Webpay Plus (Modo TEST)
+# Cargar variables desde `.env`
+load_dotenv()
 TRANSBANK_WEBPAY = {
-    'COMMERCE_CODE': '597055555532',  # Código de prueba
-    'API_KEY': '579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C',
-    'ENVIRONMENT': 'TEST',  # Modo prueba
+    'COMMERCE_CODE': os.getenv("TRANSBANK_COMMERCE_CODE"),
+    'API_KEY': os.getenv("TRANSBANK_API_KEY"),
+    'ENVIRONMENT': os.getenv("TRANSBANK_ENVIRONMENT", "TEST"),
 }
