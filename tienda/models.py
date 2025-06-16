@@ -91,15 +91,16 @@ SEXO_CHOICES = [
 
 
 class Cliente(models.Model):
-    """Extensión del modelo User para datos adicionales del usuario"""
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cliente')
 
     rut = models.CharField(
         _('RUT'),
-        max_length=12,
+        max_length=10,
         unique=True,
+        null=True,
+        blank=True,
         validators=[
-            RegexValidator(regex=r'^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$', message=_('Formato: 12.345.678-9'))
+            RegexValidator(regex=r'^\d{8}-[\dkK]$', message=_('Formato: 12345678-9'))
         ]
     )
 
@@ -113,11 +114,12 @@ class Cliente(models.Model):
     )
 
     direccion = models.TextField(_('Dirección'), blank=True, max_length=300)
-    comuna = models.CharField(_('Comuna'), max_length=100)
+    comuna = models.CharField(_('Comuna'), max_length=100, default="Por Definir")
 
     nacionalidad = models.CharField(_('Nacionalidad'), max_length=20, choices=NACIONALIDADES)
     sexo = models.CharField(_('Sexo'), max_length=10, choices=SEXO_CHOICES)
-    fecha_nacimiento = models.DateField(_('Fecha de nacimiento'))
+    fecha_nacimiento = models.DateField(_('Fecha de nacimiento'), null=True, blank=True)
+
 
     class Meta:
         verbose_name = _('Cliente')
