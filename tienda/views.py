@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import login, authenticate
-from django.contrib.auth.forms import UserCreationForm
 from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -10,13 +9,17 @@ from django.core.exceptions import PermissionDenied
 from rest_framework import generics
 from transbank.webpay.webpay_plus.transaction import Transaction, WebpayOptions
 from transbank.common.integration_type import IntegrationType
-import requests    
 from .models import MensajeContacto, Producto, Categoria
 from .serializers import ProductoSerializer, CategoriaSerializer
 from .forms import ProductoForm
 from django.views.decorators.csrf import csrf_exempt
-from .forms import RegistroCompletoForm
 import os
+from django.contrib.messages import get_messages
+from .forms import RegistroForm
+
+
+
+
 
 
 
@@ -31,22 +34,26 @@ def lista_productos(request):
     return render(request, 'tienda/productos.html', {'productos': productos})
 
 # Autenticación
+
 def registro(request):
     if request.method == 'POST':
-        form = RegistroCompletoForm(request.POST)
+        form = RegistroForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
-            messages.success(request, "Registro exitoso. ¡Bienvenido!")
-            return redirect('inicio')
+            login(request, user)  # 🔥 Inicia sesión automáticamente
+            messages.success(request, "✅ Registro exitoso. ¡Bienvenid@, " + user.username + "!")
+            return redirect('inicio')  # Redirige al inicio tras registrarse
         else:
-            messages.error(request, "Error en el registro. Revisa los datos ingresados.")
+            messages.error(request, "❌ Error en el registro. Revisa los datos ingresados.")
     else:
-        form = RegistroCompletoForm()
-    
+        form = RegistroForm()
+
     return render(request, 'tienda/registro.html', {'form': form})
 
 
+
+
+## Vista de inicio de sesión
 def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -54,12 +61,14 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            messages.success(request, "Inicio de sesión exitoso.")
+            messages.success(request, "✅ Sesión iniciada correctamente.")
             return redirect('inicio')
         else:
-            messages.error(request, "Credenciales incorrectas.")
-    
+            messages.error(request, "❌ Credenciales incorrectas.")
+
     return render(request, 'tienda/login.html')
+
+
 
 # Contacto
 def contacto(request):
@@ -151,6 +160,10 @@ def agregar_al_carrito(request, producto_id):
 
 
 def ver_carrito(request):
+    storage = get_messages(request)  # 🔥 Captura los mensajes ya mostrados y los limpia
+    for message in storage:
+        pass  # ✅ Esto los marca como procesados, evitando que aparezcan nuevamente
+
     carrito = request.session.get('carrito', {})
     productos = []
     total = 0
@@ -168,6 +181,7 @@ def ver_carrito(request):
             })
             total += subtotal
 
+    
     # Si la solicitud viene de Postman o es una API, devolver JSON
     if request.headers.get('Accept') == 'application/json' or request.GET.get('api') == 'true':
         return JsonResponse({'productos': productos, 'total': total})
@@ -211,11 +225,12 @@ def iniciar_pago(request):
 
     # credenciales de prueba
     options = WebpayOptions(
-    api_key=os.getenv("WEBPAY_API_KEY"),
-    commerce_code=os.getenv("WEBPAY_COMMERCE_CODE"),
-    integration_type=IntegrationType.TEST
-)
+    api_key= os.getenv("WEBPAY_API_KEY"),
+    commerce_code= os.getenv("WEBPAY_COMMERCE_CODE"),
+    integration_type= IntegrationType.TEST
 
+)
+    
 
     transaction = Transaction(options)
 
@@ -302,7 +317,10 @@ def pago_fallido(request):
 # Pantalla de cancelación de pago
 
 def pago_cancelado(request):
-    messages.info(request, "❌ Has cancelado la compra. No se ha realizado ningún cargo.")
+    storage = get_messages(request)
+    for message in storage:
+        pass  # ✅ Esto limpia los mensajes de la sesión
+
     return render(request, 'tienda/pago_cancelado.html', {'mensaje_cancelado': "Has cancelado tu compra. No se ha realizado ningún cobro."})
 
 

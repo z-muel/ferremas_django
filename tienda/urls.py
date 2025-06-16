@@ -1,5 +1,7 @@
 from django.urls import path, include
 from tienda import views
+from django.contrib.auth.views import LoginView, LogoutView
+
 
 urlpatterns = [
     # URLs del sitio (frontend)
@@ -11,6 +13,13 @@ urlpatterns = [
     path('contacto/', views.contacto, name='contacto'),
     path('registro/', views.registro, name='registro'),
     path('login/', views.login_view, name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),  
+
+
+
+   
+
+
     
     # Carrito de compras
     path('agregar-carrito/<int:producto_id>/', views.agregar_al_carrito, name='agregar_carrito'),

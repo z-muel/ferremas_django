@@ -104,4 +104,5 @@ TRANSBANK_WEBPAY = {
     'ENVIRONMENT': os.getenv("WEBPAY_ENVIRONMENT", "TEST"),
 }
 
+LOGOUT_REDIRECT_URL = 'inicio'  # Redirigir al inicio después de cerrar sesión
 
