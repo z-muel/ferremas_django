@@ -16,11 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 import os
 from django.contrib.messages import get_messages
 from .forms import RegistroForm
-
-
-
-
-
+from datetime import datetime
 
 
 
@@ -281,17 +277,22 @@ def confirmar_pago(request):
         if response.get('status') == 'AUTHORIZED':
             messages.success(request, "✅ Pago realizado exitosamente.")
 
-            # 🔥 Vaciar la sesión completamente para eliminar el carrito
+            # 🔥 Vaciar el carrito de la sesión
             request.session.flush()
 
-            # 🚀 Pasar más detalles del pago a la plantilla
-            return render(request, 'tienda/pago_exitoso.html', {
-                'buy_order': response.get('buy_order'),
-                'amount': response.get('amount'),
-                'authorization_code': response.get('authorization_code'),
-                'transaction_date': response.get('transaction_date'),
-                'detalle_pago': response
-            })
+            # 🚀 Verificar que los datos esenciales existen antes de redirigir
+            buy_order = response.get('buy_order')
+            monto = response.get('amount')
+            codigo_autorizacion = response.get('authorization_code')
+            transaction_date = response.get('transaction_date')
+
+            if not buy_order or not monto or not codigo_autorizacion or not transaction_date:
+                messages.error(request, "❌ Error: No se recibieron los datos de la transacción correctamente.")
+                return redirect('pago_fallido')
+
+            # ✅ Redirigir a `pago_exitoso` pasando los datos correctos en la URL
+            return redirect(reverse('pago_exitoso') + 
+                            f"?buy_order={buy_order}&amount={monto}&authorization_code={codigo_autorizacion}&transaction_date={transaction_date}")
 
         else:
             messages.error(request, "❌ El pago fue rechazado o no pudo completarse.")
@@ -307,9 +308,34 @@ def confirmar_pago(request):
             'error_message': str(e)
         })
 
+
+
+
 # ✅ Rutas para pantallas de éxito y fallo
 def pago_exitoso(request):
-    return render(request, 'tienda/pago_exitoso.html')
+    # 🔥 Obtener los datos correctamente desde la URL
+    buy_order = request.GET.get('buy_order')
+    monto = request.GET.get('amount')
+    codigo_autorizacion = request.GET.get('authorization_code')
+    transaction_date_iso = request.GET.get('transaction_date')
+
+    if not buy_order or not monto or not codigo_autorizacion or not transaction_date_iso:
+        messages.error(request, "❌ Error: No se recibieron los datos de la transacción correctamente.")
+        return redirect('pago_fallido')
+
+    fecha_hora_obj = datetime.strptime(transaction_date_iso[:19], "%Y-%m-%dT%H:%M:%S")
+    fecha_formateada = fecha_hora_obj.strftime("%d-%m-%Y")
+    hora_formateada = fecha_hora_obj.strftime("%H:%M")
+
+    return render(request, 'tienda/pago_exitoso.html', {
+        'buy_order': buy_order,
+        'monto': monto,
+        'codigo_autorizacion': codigo_autorizacion,
+        'fecha': fecha_formateada,
+        'hora': hora_formateada
+    })
+
+
 
 def pago_fallido(request):
     return render(request, 'tienda/pago_fallido.html')
