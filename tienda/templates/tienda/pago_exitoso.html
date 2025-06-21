@@ -3,7 +3,7 @@
 <p>Tu pago se ha completado correctamente.</p>
 
     <p><strong>Orden:</strong> {{ buy_order }}</p>
-    <p><strong>Monto pagado:</strong> ${{ monto }}</p>
+    <p><strong>Monto pagado:</strong> ${{ monto }} CLP (≈ {{ monto|dividir:valor_dolar }} USD)</p>
     <p><strong>Código de autorización:</strong> {{ codigo_autorizacion }}</p>
     <p><strong>Fecha:</strong> {{ fecha }} | <strong>Hora:</strong> {{ hora }}</p>
 </div>

@@ -106,3 +106,9 @@ TRANSBANK_WEBPAY = {
 
 LOGOUT_REDIRECT_URL = 'inicio'  # Redirigir al inicio después de cerrar sesión
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "cache-local",
+    }
+}
