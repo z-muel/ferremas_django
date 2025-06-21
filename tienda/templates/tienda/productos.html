@@ -4,35 +4,69 @@
 <div class="container mt-4">
     <h2>Nuestros Productos</h2>
 
-    {% if productos %}
-        <div class="row">
-            {% for producto in productos %}
-            <div class="col-md-4 mb-4">
-                <div class="card">
-                    {% if producto.imagen %}
-                        <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}">
-                    {% endif %}
-                    <div class="card-body">
-                        <h5 class="card-title">{{ producto.nombre }}</h5>
-                        <p class="card-text">
-                            <strong>${{ producto.precio }}</strong><br>
-                            <small class="text-muted">Stock: {{ producto.stock }}</small>
-                        </p>
+    <!-- Botón para alternar moneda -->
+    <div class="text-end mb-3">
+        <button id="toggle-moneda" class="btn btn-outline-dark btn-sm">
+            Ver en USD
+        </button>
+    </div>
 
-                        <!-- Formulario para agregar al carrito -->
-                        <form method="post" action="{% url 'agregar_carrito' producto.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-cart-plus"></i> Agregar al carrito
-                            </button>
-                        </form>
-                    </div>
+    {% if productos %}
+    <div class="row">
+        {% for producto in productos %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if producto.imagen %}
+                <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ producto.nombre }}</h5>
+                    <p class="card-text">
+                        <span class="precio-clp fw-bold">CLP: ${{ producto.precio }}</span>
+                        <span class="precio-usd fw-bold d-none">USD: ${{ producto.precio_usd }}</span><br>
+                        <small class="text-muted">Stock: {{ producto.stock }}</small>
+                    </p>
+
+                    <!-- Formulario para agregar al carrito -->
+                    <form method="post" action="{% url 'agregar_carrito' producto.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cart-plus"></i> Agregar al carrito
+                        </button>
+                    </form>
                 </div>
             </div>
-            {% endfor %}
         </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <div class="alert alert-warning">No hay productos disponibles en este momento.</div>
+    <div class="alert alert-warning">No hay productos disponibles en este momento.</div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const toggleBtn = document.getElementById('toggle-moneda');
+    const preciosCLP = document.querySelectorAll('.precio-clp');
+    const preciosUSD = document.querySelectorAll('.precio-usd');
+
+    function mostrarMoneda(moneda) {
+        const mostrarCLP = moneda === 'CLP';
+        preciosCLP.forEach(p => p.classList.toggle('d-none', !mostrarCLP));
+        preciosUSD.forEach(p => p.classList.toggle('d-none', mostrarCLP));
+        toggleBtn.textContent = mostrarCLP ? 'Ver en USD' : 'Ver en CLP';
+        localStorage.setItem('moneda_seleccionada', moneda);
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const actual = localStorage.getItem('moneda_seleccionada') || 'CLP';
+        mostrarMoneda(actual === 'CLP' ? 'USD' : 'CLP');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const guardada = localStorage.getItem('moneda_seleccionada') || 'CLP';
+        mostrarMoneda(guardada);
+    });
+</script>
 {% endblock %}

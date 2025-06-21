@@ -46,6 +46,7 @@ class Producto(models.Model):
         validators=[MinValueValidator(0)]
     )
     stock = models.PositiveIntegerField(_('Stock disponible'), default=0)
+    destacado = models.BooleanField(_('¿Mostrar como destacado?'), default=False)
     categoria = models.ForeignKey(
         Categoria,
         on_delete=models.PROTECT,  # Evita eliminaciones accidentales

@@ -17,17 +17,44 @@ import os
 from django.contrib.messages import get_messages
 from .forms import RegistroForm
 from datetime import datetime
+import requests
+from django.core.cache import cache
 
 
 
-# Vistas principales
+
+
+# Vista principal de la página de inicio
 def inicio(request):
-    productos_destacados = Producto.objects.filter(stock__gt=0)[:4]
-    return render(request, 'tienda/inicio.html', {'productos_destacados': productos_destacados})
+    valor_dolar = obtener_valor_dolar_actual()
+
+    productos_destacados = Producto.objects.filter(
+        destacado=True,
+        stock__gt=0,
+        imagen__isnull=False
+    ).exclude(imagen='')[:4]
+
+    for p in productos_destacados:
+        p.precio_usd = round(float(p.precio) / valor_dolar, 2)
+
+    return render(request, 'tienda/inicio.html', {
+        'productos_destacados': productos_destacados,
+        'valor_dolar': valor_dolar,
+    })
+
+
 
 def lista_productos(request):
     productos = Producto.objects.all()
-    return render(request, 'tienda/productos.html', {'productos': productos})
+    valor_dolar = obtener_valor_dolar_actual()  # Usamos la misma función auxiliar
+
+    for producto in productos:
+        producto.precio_usd = round(float(producto.precio) / valor_dolar, 2)
+
+    return render(request, 'tienda/productos.html', {
+        'productos': productos,
+        'valor_dolar': valor_dolar
+    })
 
 # Autenticación
 
@@ -163,26 +190,43 @@ def ver_carrito(request):
     carrito = request.session.get('carrito', {})
     productos = []
     total = 0
-    
+
+    # 🔸 NUEVO: obtenemos el valor actual del dólar
+    valor_dolar = obtener_valor_dolar_actual()
+
     for producto_id, cantidad in carrito.items():
         producto = Producto.objects.filter(id=int(producto_id)).first()
         if producto:
             subtotal = producto.precio * cantidad
+
+            # 🔸 NUEVO: calculamos subtotal en USD y precio unitario en USD
+            subtotal_usd = round(float(subtotal) / valor_dolar, 2)
+            precio_usd = round(float(producto.precio) / valor_dolar, 2)
+
             productos.append({
                 'producto_id': producto.id,
-                'nombre': producto.nombre,
+                'producto': producto,
                 'precio': producto.precio,
+                'precio_usd': precio_usd,       # 🔸 NUEVO
                 'cantidad': cantidad,
-                'subtotal': subtotal
+                'subtotal': subtotal,
+                'subtotal_usd': subtotal_usd     # 🔸 NUEVO
             })
             total += subtotal
 
-    
+    # 🔸 NUEVO: total en USD
+    total_usd = round(float(total) / valor_dolar, 2)
+
     # Si la solicitud viene de Postman o es una API, devolver JSON
     if request.headers.get('Accept') == 'application/json' or request.GET.get('api') == 'true':
         return JsonResponse({'productos': productos, 'total': total})
 
-    return render(request, 'tienda/carrito.html', {'productos': productos, 'total': total})
+    # 🔸 AÑADIMOS 'total_usd' al contexto para mostrarlo en la plantilla
+    return render(request, 'tienda/carrito.html', {
+        'productos': productos,
+        'total': total,
+        'total_usd': total_usd
+    })
 
 
 @require_POST
@@ -350,12 +394,44 @@ def pago_cancelado(request):
     return render(request, 'tienda/pago_cancelado.html', {'mensaje_cancelado': "Has cancelado tu compra. No se ha realizado ningún cobro."})
 
 
+# API mindicador.cl
+def obtener_valor_dolar_actual():
+    valor_dolar = cache.get('valor_dolar')
 
-# API Banco Central (optimizada)
-def convertir_moneda(request):
-    monto = float(request.GET.get('monto', 1))  # Monto base
-    tasa = 890.75  # Simulación de tasa CLP/USD
-    return JsonResponse({'monto_convertido': monto * tasa, 'tasa': tasa, 'status': 'success'})
+    if valor_dolar is None:
+        try:
+            response = requests.get("https://mindicador.cl/api/dolar", timeout=3)
+            data = response.json()
+            valor_dolar = data['serie'][0]['valor']
+            cache.set('valor_dolar', valor_dolar, timeout=60 * 10)  # guarda por 10 minutos
+        except Exception as e:
+            print("Error al obtener dólar:", e)
+            valor_dolar = 900.0  # valor de respaldo
+
+    return valor_dolar
+
+
+
+
+def inicio(request):
+    productos = Producto.objects.all()
+    valor_dolar = obtener_valor_dolar_actual()  # ✅ usamos la función auxiliar correcta
+
+    for producto in productos:
+        producto.precio_usd = round(float(producto.precio) / valor_dolar, 2)
+        
+
+    return render(request, 'tienda/inicio.html', {
+        'productos': productos,
+        'valor_dolar': valor_dolar,
+    })
+
+
+
+def obtener_dolar(request):
+    valor_dolar = obtener_valor_dolar_actual()
+    return JsonResponse({'valor_dolar': valor_dolar})
+    
 
 # API REST
 class ProductoListAPIView(generics.ListAPIView):
@@ -365,3 +441,5 @@ class ProductoListAPIView(generics.ListAPIView):
 class CategoriaListAPIView(generics.ListAPIView):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
+
+

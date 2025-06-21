@@ -1,49 +1,82 @@
 {% extends 'tienda/base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="container mt-4">
-    <!-- Banner Principal -->
-    <div class="p-5 mb-4 bg-light rounded-3">
-        <div class="container-fluid py-5">
-            <h1 class="display-5 fw-bold">Bienvenido a FERREMAS</h1>
-            <p class="col-md-8 fs-4">Tu ferretería de confianza con los mejores productos y precios.</p>
+<!-- Banner Promocional -->
+<div class="p-5 mb-4 bg-light rounded-3"
+     style="background-image: url('{% static '/tienda/img/banner_portada.png' %}');
+            background-size: cover;
+            background-position: center;
+            min-height: 300px;">
+    <div class="container-fluid py-5 text-white"
+         style="background-color: rgba(0,0,0,0.5); border-radius: 10px;">
+        <h1 class="display-5 fw-bold">FERREMAS</h1>
+        <p class="col-md-8 fs-4">Herramientas confiables, precios justos y asesoría técnica de verdad.</p>
+        <a href="{% url 'productos' %}" class="btn btn-warning btn-lg mt-3">Explorar catálogo</a>
+    </div>
+</div>
+
+     <!-- Carrusel 
+    <div id="carouselProductos" class="carousel slide mb-4" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="{% static 'tienda/img/carrusel1.jpg' %}" class="d-block w-100" alt="Carrusel 1">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'tienda/img/carrusel2.jpg' %}" class="d-block w-100" alt="Carrusel 2">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'tienda/img/carrusel3.jpg' %}" class="d-block w-100" alt="Carrusel 3">
+            </div>
         </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselProductos" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselProductos" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>-->
+   
+
+    <!-- Botón de moneda -->
+    <div class="text-end mb-3">
+        <button id="toggle-moneda" class="btn btn-outline-dark btn-sm">Ver en USD</button>
     </div>
 
-    <!-- Sección de Productos Destacados -->
-    <h2 class="mb-4">Productos Destacados</h2>
-    {% if productos_destacados %}
-        <div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
-            {% for producto in productos_destacados %}
-            <div class="col">
-                <div class="card h-100">
-                    {% if producto.imagen %}
-                    <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="height: 200px; object-fit: cover;">
-                    {% endif %}
-                    <div class="card-body">
-                        <h5 class="card-title">{{ producto.nombre }}</h5>
-                        <p class="card-text">
-                            <span class="fw-bold">${{ producto.precio }}</span><br>
-                            <small class="text-muted">Stock: {{ producto.stock }}</small>
-                        </p>
-                        
-                        <!-- Formulario para agregar al carrito -->
-                        <form method="post" action="{% url 'agregar_carrito' producto.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-primary">
-                                <i class="bi bi-cart-plus"></i> Añadir al carrito
-                            </button>
-                        </form>
-                    </div>
+    <!-- Productos recientes -->
+    <h2 class="mb-4">Novedades</h2>
+    {% if productos %}
+    <div class="row row-cols-1 row-cols-md-4 g-4 mb-5">
+        {% for producto in productos|slice:":4" %}
+        <div class="col">
+            <div class="card h-100">
+                {% if producto.imagen %}
+                <img src="{{ producto.imagen.url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ producto.nombre }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ producto.nombre }}</h5>
+                    <p class="card-text">
+                        <span class="precio-clp fw-bold">CLP: ${{ producto.precio }}</span>
+                        <span class="precio-usd fw-bold d-none">USD: ${{ producto.precio_usd }}</span><br>
+                        <small class="text-muted">Stock: {{ producto.stock }}</small>
+                    </p>
+                    <form method="post" action="{% url 'agregar_carrito' producto.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="bi bi-cart-plus"></i> Añadir al carrito
+                        </button>
+                    </form>
                 </div>
             </div>
-            {% endfor %}
         </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <div class="alert alert-info">No hay productos destacados disponibles en este momento.</div>
+    <div class="alert alert-info">No hay productos disponibles por ahora.</div>
     {% endif %}
 
-    <!-- Sección de Acciones Rápidas -->
+    <!-- Acciones Rápidas -->
     <div class="row mb-5">
         <div class="col-md-4 mb-3">
             <div class="card text-center h-100">
@@ -71,7 +104,7 @@
         </div>
     </div>
 
-    <!-- API Status (Opcional) -->
+    <!-- APIs -->
     <div class="alert alert-secondary">
         <h4><i class="bi bi-plug"></i> Nuestras APIs</h4>
         <ul class="list-unstyled">
@@ -80,4 +113,30 @@
         </ul>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const toggleBtn = document.getElementById('toggle-moneda');
+    const preciosCLP = document.querySelectorAll('.precio-clp');
+    const preciosUSD = document.querySelectorAll('.precio-usd');
+
+    function mostrarMoneda(moneda) {
+        const mostrarCLP = moneda === 'CLP';
+        preciosCLP.forEach(p => p.classList.toggle('d-none', !mostrarCLP));
+        preciosUSD.forEach(p => p.classList.toggle('d-none', mostrarCLP));
+        toggleBtn.textContent = mostrarCLP ? 'Ver en USD' : 'Ver en CLP';
+        localStorage.setItem('moneda_seleccionada', moneda);
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const actual = localStorage.getItem('moneda_seleccionada') || 'CLP';
+        mostrarMoneda(actual === 'CLP' ? 'USD' : 'CLP');
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const guardada = localStorage.getItem('moneda_seleccionada') || 'CLP';
+        mostrarMoneda(guardada);
+    });
+</script>
 {% endblock %}
